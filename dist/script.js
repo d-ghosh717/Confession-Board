@@ -1,17 +1,17 @@
 // Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, onChildRemoved, remove } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCT-zvpgBlED0MyEEm2XLUKeKwDriPb9S8",
-  authDomain: "confession-board.firebaseapp.com",
-  databaseURL: "https://confession-board-default-rtdb.firebaseio.com",
-  projectId: "confession-board",
-  storageBucket: "confession-board.firebasestorage.app",
-  messagingSenderId: "603725575015",
-  appId: "1:603725575015:web:b5321c5b1df0dc0f97f5c2"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase
@@ -33,6 +33,9 @@ const confessionForm = document.getElementById("confessionForm");
 const confessionInput = document.getElementById("confessionInput");
 const confessionList = document.getElementById("confessionList");
 
+// Store confession elements by their Firebase key
+const confessionElements = {};
+
 // Add a new confession
 confessionForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -50,10 +53,13 @@ confessionForm.addEventListener("submit", (event) => {
     }
 });
 
-// Display confessions and add delete functionality
+// Display confessions when added
 const confessionsRef = ref(database, "confessions");
 onChildAdded(confessionsRef, (data) => {
     const confessionData = data.val();
+    const confessionKey = data.key;
+
+    // Create a confession element
     const confessionElement = document.createElement("div");
     confessionElement.classList.add("confession");
     confessionElement.textContent = confessionData.text;
@@ -63,9 +69,8 @@ onChildAdded(confessionsRef, (data) => {
     deleteButton.textContent = "Delete";
     deleteButton.classList.add("delete-btn");
     deleteButton.onclick = () => {
-        remove(ref(database, `confessions/${data.key}`))
+        remove(ref(database, `confessions/${confessionKey}`))
             .then(() => {
-                confessionElement.remove();
                 console.log("Confession deleted successfully.");
             })
             .catch((error) => {
@@ -75,4 +80,19 @@ onChildAdded(confessionsRef, (data) => {
 
     confessionElement.appendChild(deleteButton);
     confessionList.insertBefore(confessionElement, confessionList.firstChild); // Add newest on top
+
+    // Save the element reference
+    confessionElements[confessionKey] = confessionElement;
+});
+
+// Handle deletions
+onChildRemoved(confessionsRef, (data) => {
+    const confessionKey = data.key;
+
+    // Remove the element from the DOM
+    const confessionElement = confessionElements[confessionKey];
+    if (confessionElement) {
+        confessionElement.remove();
+        delete confessionElements[confessionKey];
+    }
 });
